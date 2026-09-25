@@ -7,8 +7,10 @@ const jev = require('./jev');
 
 const CODE_MODEL = process.env.JEV_OC_MODEL || 'opencode-go/kimi-k2.7-code';
 const FAST_MODEL = process.env.JEV_OC_FAST_MODEL || 'opencode-go/deepseek-v4.1-flash';
-const MIN_CONFIDENCE = Number(process.env.JEV_ROUTE_MIN_CONFIDENCE) || 0.4;
-const RUN_TIMEOUT_MS = (Number(process.env.JEV_OC_TIMEOUT_MIN) || 25) * 60 * 1000;
+const MIN_CONFIDENCE = jev.envNum('JEV_ROUTE_MIN_CONFIDENCE', 0.4);
+const RUN_TIMEOUT_MS = jev.envNum('JEV_OC_TIMEOUT_MIN', 25) * 60 * 1000;
+// Longer tasks are passed to OpenCode as an attached file: Windows caps a command line at ~32k chars.
+const INLINE_TASK_MAX = 8000;
 
 // Ask Jev what kind of task this is. Returns { target: 'opencode'|'claude', model?, kind, confidence }.
 async function route(task) {
@@ -49,23 +51,33 @@ async function route(task) {
 }
 
 // Locate the real opencode binary. On Windows npm installs a .ps1/.cmd shim, which can't be spawned without a shell.
+// Returns [command, leadingArgs]; a .js override runs under Node (used by the test suite).
 function opencodeBin() {
-  if (process.env.JEV_OPENCODE_BIN) return process.env.JEV_OPENCODE_BIN;
+  const custom = process.env.JEV_OPENCODE_BIN;
+  if (custom) return custom.endsWith('.js') ? [process.execPath, [custom]] : [custom, []];
   if (process.platform === 'win32' && process.env.APPDATA) {
     const exe = path.join(process.env.APPDATA, 'npm', 'node_modules', 'opencode-ai', 'bin', 'opencode.exe');
-    if (fs.existsSync(exe)) return exe;
+    if (fs.existsSync(exe)) return [exe, []];
   }
-  return 'opencode';
+  return ['opencode', []];
 }
 
 // Run one OpenCode task headlessly and summarise what it did.
 function runOpencode({ task, model, dir, session }) {
   const args = ['run', '--format', 'json', '--auto', '--dir', dir, '-m', model];
   if (session) args.push('-s', session);
-  args.push(task);
+  let taskFile = null;
+  if (task.length > INLINE_TASK_MAX) {
+    taskFile = path.join(jev.OUTPUTS_DIR, `task-${Date.now()}.md`);
+    fs.writeFileSync(taskFile, task);
+    args.push('-f', taskFile, '--', 'Do the task described in the attached file.');
+  } else {
+    args.push('--', task);
+  }
   return new Promise((resolve) => {
     // stdin must be closed: `opencode run` waits for piped stdin to end before starting.
-    const child = spawn(opencodeBin(), args, { cwd: dir, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const [bin, lead] = opencodeBin();
+    const child = spawn(bin, [...lead, ...args], { cwd: dir, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     child.stdout.on('data', (d) => (out += d));
@@ -74,6 +86,7 @@ function runOpencode({ task, model, dir, session }) {
     child.on('error', (e) => (err += e.message));
     child.on('close', (code) => {
       clearTimeout(timer);
+      if (taskFile) fs.rm(taskFile, () => {});
       const r = { model, text: [], files: new Set(), tokens: 0, cost: 0, sessionId: session || null, code };
       for (const line of out.split('\n')) {
         let e;
@@ -131,7 +144,7 @@ function report(r, cliPath) {
     ? `To follow up in the same OpenCode session: node "${cliPath}" delegate --session ${r.sessionId} "<instructions>"`
     : '';
   return [
-    `[jev-tools] This task was delegated to OpenCode (${r.model}) instead of a Claude subagent. It already ran — do not re-run it.`,
+    `[live-love-jev] This task was delegated to OpenCode (${r.model}) instead of a Claude subagent. It already ran — do not re-run it.`,
     `Status: ${r.verdict}${r.error ? ` — ${r.error}` : ''} · ${r.seconds}s · ${r.tokens} OpenCode tokens`,
     `Files changed: ${r.files.length ? r.files.join(', ') : 'none'}`,
     '',

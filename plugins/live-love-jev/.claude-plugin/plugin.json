@@ -1,0 +1,24 @@
+{
+  "name": "live-love-jev",
+  "displayName": "Live Love Jev",
+  "version": "0.2.0",
+  "description": "Cut Claude Code token usage: route coding subagents to cheap OpenCode Go models, filter long command output, check subagent results, and hand off to a fresh session instead of compacting — powered by TypeSafe's Jev model.",
+  "author": { "name": "Jimuelle07", "url": "https://github.com/Jimuelle07" },
+  "homepage": "https://github.com/Jimuelle07/live-love-jev",
+  "repository": "https://github.com/Jimuelle07/live-love-jev",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "token-optimization",
+    "reduce-tokens",
+    "context-management",
+    "opencode",
+    "multi-model",
+    "subagents",
+    "orchestration",
+    "typesafe",
+    "jev",
+    "hooks"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "live-love-jev",
+  "private": true,
+  "description": "Claude Code plugin that cuts token usage with TypeSafe Jev and OpenCode Go",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test plugins/live-love-jev/test/plugin.test.js"
+  }
+}

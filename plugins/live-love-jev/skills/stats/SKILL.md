@@ -1,6 +1,6 @@
 ---
 name: stats
-description: Show how much jev-tools has saved.
+description: Show how much live-love-jev has saved.
 disable-model-invocation: true
 ---
 

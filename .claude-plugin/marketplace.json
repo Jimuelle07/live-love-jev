@@ -1,12 +1,14 @@
 {
-  "name": "jim-ai-workflow",
-  "description": "Personal Claude Code plugins",
-  "owner": { "name": "Jimuelle07" },
+  "name": "live-love-jev",
+  "description": "Claude Code plugin marketplace for token-saving tools: OpenCode routing, output filtering, and context handoffs powered by TypeSafe Jev",
+  "owner": { "name": "Jimuelle07", "url": "https://github.com/Jimuelle07" },
   "plugins": [
     {
-      "name": "jev-tools",
-      "source": "./plugins/jev-tools",
-      "description": "Save tokens with TypeSafe Jev: output filtering, subagent checks, handoffs"
+      "name": "live-love-jev",
+      "source": "./plugins/live-love-jev",
+      "description": "Cut Claude Code token usage: route coding subagents to OpenCode Go models, filter long command output, check subagent results, and hand off context — powered by TypeSafe Jev",
+      "category": "productivity",
+      "keywords": ["token-optimization", "opencode", "subagents", "context-management", "jev"]
     }
   ]
 }

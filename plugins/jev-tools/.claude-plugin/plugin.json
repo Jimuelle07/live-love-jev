@@ -1,6 +1,0 @@
-{
-  "name": "jev-tools",
-  "version": "0.1.0",
-  "description": "Use TypeSafe's Jev model to keep tokens out of Claude's context: filter long command output, check subagent results, and hand off to a fresh session instead of compacting.",
-  "author": { "name": "Jimuelle07" }
-}

@@ -12,8 +12,36 @@ const MODEL = process.env.JEV_MODEL || 'jev-latest';
 const BATCH_CHARS = 120000;
 const BATCH_QUESTIONS = 100;
 
-const DATA_DIR = path.join(os.homedir(), '.claude', 'jev-tools');
-fs.mkdirSync(DATA_DIR, { recursive: true });
+const DATA_DIR = process.env.JEV_DATA_DIR || path.join(os.homedir(), '.claude', 'live-love-jev');
+const OUTPUTS_DIR = path.join(DATA_DIR, 'outputs');
+try {
+  fs.mkdirSync(OUTPUTS_DIR, { recursive: true });
+} catch {}
+
+// Numeric env var with a default; unlike `Number(x) || d`, an explicit 0 is respected.
+function envNum(name, fallback) {
+  const v = Number(process.env[name]);
+  return process.env[name] !== undefined && process.env[name] !== '' && Number.isFinite(v) ? v : fallback;
+}
+
+// Keep the data folder small: drop old outputs and sessions, rotate the log. Runs once per session.
+function housekeeping() {
+  const now = Date.now();
+  const prune = (dir, test, maxAgeMs) => {
+    try {
+      for (const f of fs.readdirSync(dir)) {
+        const p = path.join(dir, f);
+        if (test(f) && now - fs.statSync(p).mtimeMs > maxAgeMs) fs.unlinkSync(p);
+      }
+    } catch {}
+  };
+  prune(OUTPUTS_DIR, () => true, 2 * 24 * 3600 * 1000);
+  prune(DATA_DIR, (f) => /^session-.*\.json$|^handoff-.*\.used\.md$/.test(f), 7 * 24 * 3600 * 1000);
+  try {
+    const logFile = path.join(DATA_DIR, 'log.jsonl');
+    if (fs.statSync(logFile).size > 5 * 1024 * 1024) fs.renameSync(logFile, logFile + '.1');
+  } catch {}
+}
 
 // ---------- Jev API ----------
 
@@ -164,7 +192,7 @@ function readStdin() {
 const truncate = (s, n) => (s.length > n ? s.slice(0, n) + `… [+${s.length - n} chars]` : s);
 
 module.exports = {
-  DATA_DIR, ask, nouls, loadSession, saveSession, currentTask, handoffFile,
+  DATA_DIR, OUTPUTS_DIR, envNum, housekeeping, ask, nouls, loadSession, saveSession, currentTask, handoffFile,
   readTranscript, userText, assistantText, subagentTask, subagentTranscriptPath,
   log, readStdin, truncate,
 };

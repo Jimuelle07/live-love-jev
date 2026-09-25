@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// jev-tools CLI.
+// live-love-jev CLI.
 //   cli.js check --task <text|@file> --result <text|@file>
 //   cli.js handoff <session_id> <project_dir>
-//   cli.js delegate [--model m] [--session id] [--dir d] [--out file] <task>
+//   cli.js delegate [--model m] [--session id] [--dir d] [--out file] [--task-file f] <task>
 //   cli.js route <task>
 //   cli.js stats
 'use strict';
@@ -121,17 +121,21 @@ function newestTranscript(projectDir) {
 
 // ---------- delegate / route: OpenCode orchestration ----------
 
-// delegate [--model m] [--session id] [--dir d] [--out file] <task...>
+// delegate [--model m] [--session id] [--dir d] [--out file] [--task-file f] <task...>
 async function delegate() {
   const opts = {};
   const words = [];
   for (let i = 0; i < rest.length; i++) {
-    const m = /^--(model|session|dir|out)$/.exec(rest[i]);
+    const m = /^--(model|session|dir|out|task-file)$/.exec(rest[i]);
     if (m) opts[m[1]] = rest[++i];
     else words.push(rest[i]);
   }
-  const task = words.join(' ').trim();
-  if (!task) throw new Error('usage: delegate [--model m] [--session id] [--dir d] [--out file] <task>');
+  let task = words.join(' ').trim();
+  if (opts['task-file']) {
+    task = fs.readFileSync(opts['task-file'], 'utf8').trim();
+    fs.rmSync(opts['task-file'], { force: true });
+  }
+  if (!task) throw new Error('usage: delegate [--model m] [--session id] [--dir d] [--out file] [--task-file f] <task>');
   const orchestrate = require('./orchestrate');
   const r = await orchestrate.delegate({
     task,
@@ -177,7 +181,7 @@ function stats() {
     if (!commands[cmd]) throw new Error('usage: cli.js check|handoff|delegate|route|stats');
     await commands[cmd]();
   } catch (err) {
-    console.log(`jev-tools: ${err.message}`);
+    console.log(`live-love-jev: ${err.message}`);
     process.exitCode = 1;
   }
 })();
