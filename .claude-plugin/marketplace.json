@@ -1,0 +1,12 @@
+{
+  "name": "jim-ai-workflow",
+  "description": "Personal Claude Code plugins",
+  "owner": { "name": "Jimuelle07" },
+  "plugins": [
+    {
+      "name": "jev-tools",
+      "source": "./plugins/jev-tools",
+      "description": "Save tokens with TypeSafe Jev: output filtering, subagent checks, handoffs"
+    }
+  ]
+}
